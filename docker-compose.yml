@@ -1,0 +1,70 @@
+services:
+  eureka-server:
+    build: ./eureka-server
+    container_name: eureka_server
+    ports:
+      - "${EUREKA_PORT}:${EUREKA_PORT}"
+    environment:
+      SPRING_APPLICATION_NAME: eureka-server
+      SERVER_PORT: ${EUREKA_PORT}
+      EUREKA_CLIENT_REGISTER_WITH_EUREKA: "false"
+      EUREKA_CLIENT_FETCH_REGISTRY: "false"
+
+  api-gateway:
+    build: ./api-gateway
+    container_name: api_gateway
+    ports:
+      - "${GATEWAY_PORT}:${GATEWAY_PORT}"
+    depends_on:
+      - eureka-server
+    environment:
+      SPRING_APPLICATION_NAME: api-gateway
+      SERVER_PORT: ${GATEWAY_PORT}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:${EUREKA_PORT}/eureka/
+
+  order-service:
+    build: ./order-service
+    container_name: order_service
+    ports:
+      - "${ORDER_PORT}:${ORDER_PORT}"
+    depends_on:
+      - postgres
+      - eureka-server
+    environment:
+      SPRING_APPLICATION_NAME: order-service
+      SERVER_PORT: ${ORDER_PORT}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB_ORDERS}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:${EUREKA_PORT}/eureka/
+
+  inventory-service:
+    build: ./inventory-service
+    container_name: inventory_service
+    ports:
+      - "${INVENTORY_PORT}:${INVENTORY_PORT}"
+    depends_on:
+      - postgres
+      - eureka-server
+    environment:
+      SPRING_APPLICATION_NAME: inventory-service
+      SERVER_PORT: ${INVENTORY_PORT}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB_INVENTORY}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:${EUREKA_PORT}/eureka/
+
+  postgres:
+    image: postgres:16
+    container_name: postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+volumes:
+  postgres_data:
