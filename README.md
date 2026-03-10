@@ -32,7 +32,6 @@ microservice-project/ \
 ├── .env.example \
 └── README.md
 
-Mã
 
 ---
 
